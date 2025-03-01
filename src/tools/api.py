@@ -64,6 +64,7 @@ def get_financial_metrics(symbol: str) -> Dict[str, Any]:
             logger.error(f"Error getting income statement: {e}")
             latest_income = pd.Series()
 
+        value_data = ak.stock_value_em(symbol=symbol).iloc[-1]
         # 构建完整指标数据
         logger.info("Building indicators...")
         try:
@@ -80,11 +81,11 @@ def get_financial_metrics(symbol: str) -> Dict[str, Any]:
                 "float_market_cap": float(stock_data.get("流通市值", 0)),
 
                 # 盈利数据
-                "revenue": float(latest_income.get("营业总收入", 0)),
+                "revenue": float(latest_income.get("营业收入", 0)),
                 "net_income": float(latest_income.get("净利润", 0)),
                 "return_on_equity": convert_percentage(latest_financial.get("净资产收益率(%)", 0)),
-                "net_margin": convert_percentage(latest_financial.get("销售净利率(%)", 0)),
-                "operating_margin": convert_percentage(latest_financial.get("营业利润率(%)", 0)),
+                "net_margin": float(latest_income.get("净利润", 0)) / float(latest_income.get("营业收入", 0)),
+                "operating_margin": float(latest_income.get("营业利润", 0)) / float(latest_income.get("营业收入", 0)),
 
                 # 增长指标
                 "revenue_growth": convert_percentage(latest_financial.get("主营业务收入增长率(%)", 0)),
@@ -98,9 +99,9 @@ def get_financial_metrics(symbol: str) -> Dict[str, Any]:
                 "earnings_per_share": float(latest_financial.get("加权每股收益(元)", 0)),
 
                 # 估值比率
-                "pe_ratio": float(stock_data.get("市盈率-动态", 0)),
-                "price_to_book": float(stock_data.get("市净率", 0)),
-                "price_to_sales": float(stock_data.get("总市值", 0)) / float(latest_income.get("营业总收入", 1)) if float(latest_income.get("营业总收入", 0)) > 0 else 0,
+                "pe_ratio": float(value_data.get("PE(TTM)", 0)),
+                "price_to_book": float(value_data.get("市净率", 0)),
+                "price_to_sales": float(value_data.get("市销率", 0)),
             }
 
             # 只返回 agent 需要的指标
