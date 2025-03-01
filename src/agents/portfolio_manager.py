@@ -1,9 +1,9 @@
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
-from src.tools.openrouter_config import get_chat_completion
+from tools.openrouter_config import get_chat_completion
 import json
 
-from src.agents.state import AgentState, show_agent_reasoning, show_workflow_status
+from agents.state import AgentState, show_agent_reasoning, show_workflow_status
 
 
 ##### Portfolio Management Agent #####

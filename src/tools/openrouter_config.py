@@ -1,10 +1,11 @@
 import os
 import time
-from google import genai
+#from google import genai
+from openai import OpenAI
 from dotenv import load_dotenv
 from dataclasses import dataclass
 import backoff
-from src.utils.logging_config import setup_logger, SUCCESS_ICON, ERROR_ICON, WAIT_ICON
+from utils.logging_config import setup_logger, SUCCESS_ICON, ERROR_ICON, WAIT_ICON
 
 # 设置日志记录
 logger = setup_logger('api_calls')
@@ -38,8 +39,9 @@ else:
     logger.warning(f"{ERROR_ICON} 未找到环境变量文件: {env_path}")
 
 # 验证环境变量
-api_key = os.getenv("GEMINI_API_KEY")
-model = os.getenv("GEMINI_MODEL")
+api_key = os.getenv("API_KEY")
+model = os.getenv("API_MODEL")
+url=os.getenv("API_URL")
 
 if not api_key:
     logger.error(f"{ERROR_ICON} 未找到 GEMINI_API_KEY 环境变量")
@@ -48,82 +50,36 @@ if not model:
     model = "gemini-1.5-flash"
     logger.info(f"{WAIT_ICON} 使用默认模型: {model}")
 
+# # 初始化 Gemini 客户端
+# client = genai.Client(api_key=api_key)
+# logger.info(f"{SUCCESS_ICON} Gemini 客户端初始化成功")
+
 # 初始化 Gemini 客户端
-client = genai.Client(api_key=api_key)
-logger.info(f"{SUCCESS_ICON} Gemini 客户端初始化成功")
-
-
-@backoff.on_exception(
-    backoff.expo,
-    (Exception),
-    max_tries=5,
-    max_time=300,
-    giveup=lambda e: "AFC is enabled" not in str(e)
+#client = genai.Client(api_key=api_key)
+client = OpenAI(
+    api_key=api_key, # 在这里将 MOONSHOT_API_KEY 替换为你从 Kimi 开放平台申请的 API Key
+    base_url=url,
 )
-def generate_content_with_retry(model, contents, config=None):
-    """带重试机制的内容生成函数"""
-    try:
-        logger.info(f"{WAIT_ICON} 正在调用 Gemini API...")
-        logger.debug(f"请求内容: {contents}")
-        logger.debug(f"请求配置: {config}")
-
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=config
-        )
-
-        logger.info(f"{SUCCESS_ICON} API 调用成功")
-        logger.debug(f"响应内容: {response.text[:500]}...")
-        return response
-    except Exception as e:
-        if "AFC is enabled" in str(e):
-            logger.warning(f"{ERROR_ICON} 触发 API 限制，等待重试... 错误: {str(e)}")
-            time.sleep(5)
-            raise e
-        logger.error(f"{ERROR_ICON} API 调用失败: {str(e)}")
-        logger.error(f"错误详情: {str(e)}")
-        raise e
-
+logger.info(f"{SUCCESS_ICON} KIMI客户端初始化成功")
 
 def get_chat_completion(messages, model=None, max_retries=3, initial_retry_delay=1):
     """获取聊天完成结果，包含重试逻辑"""
     try:
         if model is None:
-            model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+            model = os.getenv("API_MODEL", "moonshot-v1-8k")
 
         logger.info(f"{WAIT_ICON} 使用模型: {model}")
-        logger.debug(f"消息内容: {messages}")
+        logger.info(f"消息内容: {messages}")
 
         for attempt in range(max_retries):
             try:
-                # 转换消息格式
-                prompt = ""
-                system_instruction = None
-
-                for message in messages:
-                    role = message["role"]
-                    content = message["content"]
-                    if role == "system":
-                        system_instruction = content
-                    elif role == "user":
-                        prompt += f"User: {content}\n"
-                    elif role == "assistant":
-                        prompt += f"Assistant: {content}\n"
-
-                # 准备配置
-                config = {}
-                if system_instruction:
-                    config['system_instruction'] = system_instruction
-
-                # 调用 API
-                response = generate_content_with_retry(
-                    model=model,
-                    contents=prompt.strip(),
-                    config=config
+                completion = client.chat.completions.create(
+                    model = model,
+                    messages = messages,
+                    temperature = 0.3,
                 )
 
-                if response is None:
+                if completion is None:
                     logger.warning(
                         f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries}: API 返回空值")
                     if attempt < max_retries - 1:
@@ -134,11 +90,11 @@ def get_chat_completion(messages, model=None, max_retries=3, initial_retry_delay
                     return None
 
                 # 转换响应格式
-                chat_message = ChatMessage(content=response.text)
-                chat_choice = ChatChoice(message=chat_message)
-                completion = ChatCompletion(choices=[chat_choice])
+                # chat_message = ChatMessage(content=response.text)
+                # chat_choice = ChatChoice(message=chat_message)
+                # completion = ChatCompletion(choices=[chat_choice])
 
-                logger.debug(f"API 原始响应: {response.text}")
+                logger.info(f"API 原始响应: {completion.choices[0].message.content}")
                 logger.info(f"{SUCCESS_ICON} 成功获取响应")
                 return completion.choices[0].message.content
 
