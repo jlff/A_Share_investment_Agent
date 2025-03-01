@@ -173,22 +173,22 @@ def get_news_sentiment(news_list: list, num_of_news: int = 5) -> float:
     ])
 
     # 检查缓存
-    if os.path.exists(cache_file):
-        print("发现情感分析缓存文件")
-        try:
-            with open(cache_file, 'r', encoding='utf-8') as f:
-                cache = json.load(f)
-                if news_key in cache:
-                    print("使用缓存的情感分析结果")
-                    return cache[news_key]
-                print("未找到匹配的情感分析缓存")
-        except Exception as e:
-            print(f"读取情感分析缓存出错: {e}")
-            cache = {}
-    else:
-        print("未找到情感分析缓存文件，将创建新文件")
-        cache = {}
-
+    # if os.path.exists(cache_file):
+    #     print("发现情感分析缓存文件")
+    #     try:
+    #         with open(cache_file, 'r', encoding='utf-8') as f:
+    #             cache = json.load(f)
+    #             if news_key in cache:
+    #                 print("使用缓存的情感分析结果")
+    #                 return cache[news_key]
+    #             print("未找到匹配的情感分析缓存")
+    #     except Exception as e:
+    #         print(f"读取情感分析缓存出错: {e}")
+    #         cache = {}
+    # else:
+    #     print("未找到情感分析缓存文件，将创建新文件")
+    #     cache = {}
+    cache = {}
     # 准备系统消息
     system_message = {
         "role": "system",
