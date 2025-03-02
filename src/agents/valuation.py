@@ -15,21 +15,21 @@ def valuation_agent(state: AgentState):
 
     reasoning = {}
 
-    # Calculate working capital change
-    working_capital_change = (current_financial_line_item.get(
-        'working_capital') or 0) - (previous_financial_line_item.get('working_capital') or 0)
+    # # Calculate working capital change
+    # working_capital_change = (current_financial_line_item.get(
+    #     'working_capital') or 0) - (previous_financial_line_item.get('working_capital') or 0)
 
-    # Owner Earnings Valuation (Buffett Method)
-    owner_earnings_value = calculate_owner_earnings_value(
-        net_income=current_financial_line_item.get('net_income'),
-        depreciation=current_financial_line_item.get(
-            'depreciation_and_amortization'),
-        capex=current_financial_line_item.get('capital_expenditure'),
-        working_capital_change=working_capital_change,
-        growth_rate=metrics["earnings_growth"],
-        required_return=0.15,
-        margin_of_safety=0.25
-    )
+    # # Owner Earnings Valuation (Buffett Method)
+    # owner_earnings_value = calculate_owner_earnings_value(
+    #     net_income=current_financial_line_item.get('net_income'),
+    #     depreciation=current_financial_line_item.get(
+    #         'depreciation_and_amortization'),
+    #     capex=current_financial_line_item.get('capital_expenditure'),
+    #     working_capital_change=working_capital_change,
+    #     growth_rate=metrics["earnings_growth"],
+    #     required_return=0.15,
+    #     margin_of_safety=0.25
+    # )
 
     # DCF Valuation
     dcf_value = calculate_intrinsic_value(
@@ -42,8 +42,8 @@ def valuation_agent(state: AgentState):
 
     # Calculate combined valuation gap (average of both methods)
     dcf_gap = (dcf_value - market_cap) / market_cap
-    owner_earnings_gap = (owner_earnings_value - market_cap) / market_cap
-    valuation_gap = (dcf_gap + owner_earnings_gap) / 2
+    # owner_earnings_gap = (owner_earnings_value - market_cap) / market_cap
+    valuation_gap = dcf_gap
 
     if valuation_gap > 0.10:  # Changed from 0.15 to 0.10 (10% undervalued)
         signal = 'bullish'
@@ -57,10 +57,10 @@ def valuation_agent(state: AgentState):
         "details": f"Intrinsic Value: ${dcf_value:,.2f}, Market Cap: ${market_cap:,.2f}, Gap: {dcf_gap:.1%}"
     }
 
-    reasoning["owner_earnings_analysis"] = {
-        "signal": "bullish" if owner_earnings_gap > 0.10 else "bearish" if owner_earnings_gap < -0.20 else "neutral",
-        "details": f"Owner Earnings Value: ${owner_earnings_value:,.2f}, Market Cap: ${market_cap:,.2f}, Gap: {owner_earnings_gap:.1%}"
-    }
+    # reasoning["owner_earnings_analysis"] = {
+    #     "signal": "bullish" if owner_earnings_gap > 0.10 else "bearish" if owner_earnings_gap < -0.20 else "neutral",
+    #     "details": f"Owner Earnings Value: ${owner_earnings_value:,.2f}, Market Cap: ${market_cap:,.2f}, Gap: {owner_earnings_gap:.1%}"
+    # }
 
     message_content = {
         "signal": signal,
@@ -116,7 +116,6 @@ def calculate_owner_earnings_value(
         # 数据有效性检查
         if not all(isinstance(x, (int, float)) for x in [net_income, depreciation, capex, working_capital_change]):
             return 0
-
         # 计算初始所有者收益
         owner_earnings = (
             net_income +
