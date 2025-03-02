@@ -103,7 +103,6 @@ def get_financial_metrics(symbol: str) -> Dict[str, Any]:
                 "price_to_book": float(value_data.get("市净率", 0)),
                 "price_to_sales": float(value_data.get("市销率", 0)),
             }
-
             # 只返回 agent 需要的指标
             agent_metrics = {
                 # 盈利能力指标
@@ -220,6 +219,9 @@ def get_financial_statements(symbol: str) -> Dict[str, Any]:
         # 构建财务数据
         line_items = []
         try:
+            capital_expenditure = abs(float(latest_cash_flow.get("购建固定资产、无形资产和其他长期资产所支付的现金", 0)))
+            if capital_expenditure == 0:
+                capital_expenditure = abs(float(latest_cash_flow.get("购建固定资产、无形资产和其他长期资产支付的现金",0)))
             # 处理最新期间数据
             current_item = {
                 # 从利润表获取
@@ -232,12 +234,15 @@ def get_financial_statements(symbol: str) -> Dict[str, Any]:
 
                 # 从现金流量表获取
                 "depreciation_and_amortization": float(latest_cash_flow.get("固定资产折旧、油气资产折耗、生产性生物资产折旧", 0)),
-                "capital_expenditure": abs(float(latest_cash_flow.get("购建固定资产、无形资产和其他长期资产支付的现金", 0))),
-                "free_cash_flow": float(latest_cash_flow.get("经营活动产生的现金流量净额", 0)) - abs(float(latest_cash_flow.get("购建固定资产、无形资产和其他长期资产支付的现金", 0)))
+                "capital_expenditure": capital_expenditure,
+                "free_cash_flow": float(latest_income.get("净利润", 0)) - capital_expenditure
             }
             line_items.append(current_item)
             logger.info("✓ Latest period data processed successfully")
 
+            capital_expenditure = abs(float(previous_cash_flow.get("购建固定资产、无形资产和其他长期资产所支付的现金", 0)))
+            if capital_expenditure == 0:
+                capital_expenditure = abs(float(previous_cash_flow.get("购建固定资产、无形资产和其他长期资产支付的现金",0)))
             # 处理上一期间数据
             previous_item = {
                 "net_income": float(previous_income.get("净利润", 0)),
@@ -245,8 +250,8 @@ def get_financial_statements(symbol: str) -> Dict[str, Any]:
                 "operating_profit": float(previous_income.get("营业利润", 0)),
                 "working_capital": float(previous_balance.get("流动资产合计", 0)) - float(previous_balance.get("流动负债合计", 0)),
                 "depreciation_and_amortization": float(previous_cash_flow.get("固定资产折旧、油气资产折耗、生产性生物资产折旧", 0)),
-                "capital_expenditure": abs(float(previous_cash_flow.get("购建固定资产、无形资产和其他长期资产支付的现金", 0))),
-                "free_cash_flow": float(previous_cash_flow.get("经营活动产生的现金流量净额", 0)) - abs(float(previous_cash_flow.get("购建固定资产、无形资产和其他长期资产支付的现金", 0)))
+                "capital_expenditure": capital_expenditure,
+                "free_cash_flow": float(previous_income.get("净利润", 0)) - capital_expenditure
             }
             line_items.append(previous_item)
             logger.info("✓ Previous period data processed successfully")
